@@ -1,0 +1,26 @@
+#!/bin/bash
+#BSUB -J "prevent-AD_regressions" 
+#BSUB -P jamlab
+#BSUB -o /projectnb/jamlab/bsub_output/out.%J
+#BSUB -e /projectnb/jamlab/bsub_output/err.%J
+#BSUB -W 24:00
+#BSUB -q parallel
+#BSUB -n 16
+#BSUB -R "span[ptile=16] rusage[mem=5G]"
+#BSUB -B
+#BSUB -N
+#BSUB -u YOUR_EMAIL
+
+start_time=$(date +%s)
+
+echo "-----------------------------------------------------------------------------"
+echo "sklearn regressions MLs on prevent-AD data"
+echo "-----------------------------------------------------------------------------"
+echo ""
+
+module load anaconda3
+source /share/apps/anaconda/anaconda3_build/bin/activate
+conda activate prevent_AD
+
+cd ~
+python ~/prevent-AD_sklearn_regressions_flexible.py

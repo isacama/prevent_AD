@@ -1,0 +1,42 @@
+#!/bin/bash
+#BSUB -J "ridge_newout[1-132]"
+#BSUB -P jamlab
+#BSUB -o /projectnb/jamlab/bsub_output/out_ridge.%J.%I
+#BSUB -e /projectnb/jamlab/bsub_output/err_ridge.%J.%I
+#BSUB -W 06:00
+#BSUB -q normal
+#BSUB -n 8
+#BSUB -R "span[hosts=1] rusage[mem=2G]"
+#BSUB -u YOUR_EMAIL
+
+# Ridge regression + 1000-permutation test on the 22 new BLUP outcomes x 6 brain measures
+# (132 pairs, one pair per array task; same task numbering as the TabPFN new-outcomes job).
+# NOTE: no -B / -N flags here: with an array job they would send hundreds of emails.
+
+module load anaconda3
+source /share/apps/anaconda/anaconda3_build/bin/activate
+conda activate /projectnb/jamlab/ixc751/conda_envs/prevent_AD
+
+export PROJECT_DIR="/projectnb/jamlab/ixc751"
+
+# one thread per worker; the permutations are parallelised across N_JOBS workers instead
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+
+export MODEL_TYPE="ridge"          # ridge | svr
+export N_PERM=1000
+export N_JOBS=8
+
+export OUTCOME_LIST_FILE="${PROJECT_DIR}/outcomes_new_blup.txt"
+export OUTCOMES_FILE="auto"
+export RESULTS_TAG="newblup"       # results go to ridge_newblup/
+
+cd "$PROJECT_DIR"
+echo "Array task ${LSB_JOBINDEX} on $(hostname) at $(date)"
+echo "Script: $(ls -l ${PROJECT_DIR}/prevent-AD_sklearn_regressions_flexible.py)"
+
+python -u prevent-AD_sklearn_regressions_flexible.py
+status=$?
+echo "Finished at $(date) with exit code $status"
+exit $status
