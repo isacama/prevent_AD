@@ -1,0 +1,12 @@
+*.csv
+*.png
+*.npy
+*.npz
+*.xlsx
+*.zip
+*.pkl
+*.log
+__pycache__/
+.ipynb_checkpoints/
+.tabpfn_env
+results/
