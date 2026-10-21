@@ -1,0 +1,47 @@
+#!/bin/bash
+#BSUB -J "tabpfn_shap[1-7]"
+#BSUB -P jamlab
+#BSUB -o /projectnb/jamlab/bsub_output/out_shap.%J.%I
+#BSUB -e /projectnb/jamlab/bsub_output/err_shap.%J.%I
+#BSUB -W 04:00
+#BSUB -q gpu_h100
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -n 4
+#BSUB -R "span[hosts=1] rusage[mem=16G]"
+#BSUB -u YOUR_EMAIL
+
+# SHAP feature importance for TabPFN, one pair per array task.
+# Task i runs the i-th "outcome:predictor" entry in SHAP_PAIRS.
+
+module load anaconda3
+source /share/apps/anaconda/anaconda3_build/bin/activate
+conda activate /projectnb/jamlab/ixc751/conda_envs/prevent_AD
+
+export PROJECT_DIR="/projectnb/jamlab/ixc751"
+export HOME="${PROJECT_DIR}"
+export XDG_CACHE_HOME="${PROJECT_DIR}/.cache"
+export TABPFN_CACHE_DIR="${PROJECT_DIR}/.cache/tabpfn"
+export TORCH_HOME="${PROJECT_DIR}/.cache/torch"
+export HF_HOME="${PROJECT_DIR}/.cache/huggingface"
+
+export TABPFN_TOKEN="PASTE_TOKEN_HERE"
+
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+
+# The 7 pairs that were significant with all 200 features (no feature selection)
+export SHAP_PAIRS="AB_ratio_slope:rsfc_hipp_body,AB_ratio_slope:rsfc_hipp_tail,AB_ratio_slope:rsfc_hipp_head,pTau_intercept:rsfc_perirhinal,pTau_intercept:T1T2,pTau_slope:rsfc_perirhinal,AB_ratio_intercept:T1T2"
+
+export SHAP_FEATURES="all"     # all (200 regions) | rf_fulldata_top20
+export SHAP_BACKGROUND=50      # baseline "average person" sample from the training folds
+export SHAP_EXPLAIN=0          # people explained per fold; 0 = all held-out people
+export SHAP_PASSES=1           # increase to 2-3 for less noisy values (proportionally slower)
+export SHAP_BATCH=50
+
+cd "$PROJECT_DIR"
+echo "Array task ${LSB_JOBINDEX} on $(hostname) at $(date)"
+nvidia-smi --query-gpu=name --format=csv,noheader
+
+python -u tabpfn_shap.py
+
+echo "Finished at $(date)"

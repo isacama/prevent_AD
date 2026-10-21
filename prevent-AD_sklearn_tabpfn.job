@@ -1,0 +1,44 @@
+#!/bin/bash
+#BSUB -J "prevent-AD_tabpfn[1-60]"
+#BSUB -P jamlab
+#BSUB -o /projectnb/jamlab/bsub_output/out.%J.%I
+#BSUB -e /projectnb/jamlab/bsub_output/err.%J.%I
+#BSUB -W 03:00
+#BSUB -q gpu_h100
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -n 4
+#BSUB -R "span[hosts=1] rusage[mem=16G]"
+#BSUB -u YOUR_EMAIL
+
+# --- Environment ---------------------------------------------------------
+module load anaconda3
+source /share/apps/anaconda/anaconda3_build/bin/activate
+conda activate /projectnb/jamlab/ixc751/conda_envs/prevent_AD
+
+export PROJECT_DIR="/projectnb/jamlab/ixc751"
+export HOME="${PROJECT_DIR}"
+export XDG_CACHE_HOME="${PROJECT_DIR}/.cache"
+export TABPFN_CACHE_DIR="${PROJECT_DIR}/.cache/tabpfn"
+export TORCH_HOME="${PROJECT_DIR}/.cache/torch"
+export HF_HOME="${PROJECT_DIR}/.cache/huggingface"
+
+export TABPFN_TOKEN="PASTE_TOKEN_HERE"
+
+# Use all 4 requested cores for TabPFN's CPU-side preprocessing
+export OMP_NUM_THREADS=4
+export MKL_NUM_THREADS=4
+
+# Run settings (change here, no need to edit the Python file)
+export MODEL_TYPE="tabpfn"
+export N_PERM=1000          # 100 for screening; 1000 for final runs
+
+mkdir -p "$TABPFN_CACHE_DIR" "$TORCH_HOME" "$HF_HOME" /projectnb/jamlab/bsub_output
+cd "$PROJECT_DIR"
+
+echo "Array task ${LSB_JOBINDEX} on $(hostname) at $(date)"
+echo "Script: $(ls -l ${PROJECT_DIR}/prevent-AD_sklearn_tabpfn_flexible.py)"
+nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv
+
+python -u prevent-AD_sklearn_tabpfn_flexible.py
+
+echo "Finished at $(date)"
